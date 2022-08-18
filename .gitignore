@@ -1,4 +1,7 @@
+.env
+
 # Binaries for programs and plugins
+ddns
 *.exe
 *.exe~
 *.dll
