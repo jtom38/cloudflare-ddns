@@ -225,7 +225,7 @@ func (c *CloudFlareClient) UpdateDnsEntry(DomainId string, DnsDetails *DnsDetail
 		return err
 	}
 
-	req, err := http.NewRequest("GET", endpoint, bytes.NewBuffer(body))
+	req, err := http.NewRequest("PATCH", endpoint, bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
@@ -243,6 +243,6 @@ func (c *CloudFlareClient) UpdateDnsEntry(DomainId string, DnsDetails *DnsDetail
 		return errors.New("failed to update the IP address")
 	}
 
-	//log.Print(resp)
+	log.Println("IP Address request was sent and no errors reported.")
 	return nil
 }
