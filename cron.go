@@ -7,7 +7,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-type cronClient struct{
+type cronClient struct {
 	scheduler *cron.Cron
 }
 
@@ -37,17 +37,18 @@ func (c cronClient) RunCloudflareCheck(ApiToken string, Email string, Domain str
 		log.Println(err)
 		return
 	}
-	
+
 	for _, host := range Hosts {
 		hostname := fmt.Sprintf("%v.%v", host, Domain)
 		log.Printf("Reviewing '%v'", hostname)
 		dns, err := cf.GetDnsEntriesByDomain(domainDetails.Result[0].ID, host, Domain)
 		if err != nil {
 			log.Println("failed to collect dns entry")
-			return 
+			return
 		}
-		
-		if dns.Result[0].Content != currentIp {
+
+		var result = dns.Result[0]
+		if result.Content != currentIp {
 			log.Println("IP Address no longer matches, sending an update")
 			err = cf.UpdateDnsEntry(domainDetails.Result[0].ID, dns, currentIp)
 			if err != nil {
@@ -56,4 +57,8 @@ func (c cronClient) RunCloudflareCheck(ApiToken string, Email string, Domain str
 		}
 	}
 	log.Println("Done!")
+}
+
+func (c cronClient) HelloWorldJob() {
+	log.Print("Hello World")
 }

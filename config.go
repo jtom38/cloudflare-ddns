@@ -6,16 +6,25 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
+	"gopkg.in/yaml.v3"
 )
 
 const (
-	ConfigEmail = "EMAIL"
-	ConfigToken = "API_TOKEN"
+	ConfigEmail  = "EMAIL"
+	ConfigToken  = "API_TOKEN"
 	ConfigDomain = "DOMAIN"
-	ConfigHosts = "HOSTS"
+	ConfigHosts  = "HOSTS"
 )
+
+type ConfigModel struct {
+	Email  string   `yaml:"Email"`
+	Token  string   `yaml:"Token"`
+	Domain string   `yaml:"Domain"`
+	Hosts  []string `yaml:"Hosts"`
+}
 
 type ConfigClient struct{}
 
@@ -24,6 +33,35 @@ func NewConfigClient() ConfigClient {
 	c.RefreshEnv()
 
 	return c
+}
+
+func (cc *ConfigClient) LoadConfig() ConfigModel {
+	// load yaml first
+
+	model, err := LoadYaml("config.yaml")
+	if err != nil {
+		log.Print(err)
+	}
+
+	// refresh env to make sure its current
+	cc.RefreshEnv()
+
+	// if no domains pulled from yaml, load from env
+	if len(model.Hosts) == 0 {
+		envHosts := cc.GetConfig(ConfigHosts)
+		model.Hosts = append(model.Hosts, strings.Split(envHosts, ",")...)
+	}
+	if model.Domain == "" {
+		model.Domain = cc.GetConfig(ConfigDomain)
+	}
+	if model.Email == "" {
+		model.Email = cc.GetConfig(ConfigEmail)
+	}
+	if model.Token == "" {
+		model.Token = cc.GetConfig(ConfigToken)
+	}
+
+	return model
 }
 
 func (cc *ConfigClient) GetConfig(key string) string {
@@ -69,4 +107,34 @@ func loadEnvFile() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+}
+
+func (cc *ConfigClient) IsConfigInCurrentDirectory(fileName string) error {
+	_, err := os.Stat(fileName)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func LoadYaml(yamlFile string) (ConfigModel, error) {
+	var results = ConfigModel{}
+
+	// check for the config in the current directory
+	_, err := os.Stat(yamlFile)
+	if err != nil {
+		return ConfigModel{}, err
+	}
+
+	content, err := os.ReadFile(yamlFile)
+	if err != nil {
+		return ConfigModel{}, err
+	}
+
+	err = yaml.Unmarshal(content, &results)
+	if err != nil {
+		return ConfigModel{}, err
+	}
+
+	return results, nil
 }
