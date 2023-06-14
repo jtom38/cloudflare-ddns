@@ -1,13 +1,10 @@
-FROM golang:1.19 as build
+FROM golang:1.20 as build
 
 COPY . /app
 WORKDIR /app
 RUN go build .
 
-FROM alpine:latest as app
-
-RUN apk --no-cache add bash libc6-compat && \
-    mkdir /app 
+FROM debian:latest as app
 
 COPY --from=build /app/ddns /app
 
