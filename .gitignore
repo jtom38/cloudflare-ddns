@@ -1,4 +1,6 @@
 .env
+*.yaml
+*.yml
 
 # Binaries for programs and plugins
 ddns
