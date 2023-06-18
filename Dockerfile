@@ -6,6 +6,6 @@ RUN go build .
 
 FROM debian:latest as app
 
-COPY --from=build /app/ddns /app
+COPY --from=build /app/ddns /usr/bin/ddns
 
-CMD [ "/app/ddns" ]
+CMD [ "ddns" ]

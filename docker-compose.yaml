@@ -2,7 +2,7 @@ version: "3"
     
 services:
   app:
-    image: ghcr.io/jtom38/cloudflare-ddns:master
+    image: jtom38/cloudflare-ddns:latest
     container_name: cfddns
     environment:
       EMAIL: "yourcloudflareemailaddress"
