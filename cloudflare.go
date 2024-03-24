@@ -135,30 +135,32 @@ func (c *CloudFlareClient) GetDomainByName(domain string) (*listDomainZones, err
 	return &items, nil
 }
 
+type Result struct {
+	ID         string    `json:"id"`
+	Type       string    `json:"type"`
+	Name       string    `json:"name"`
+	Content    string    `json:"content"`
+	Proxiable  bool      `json:"proxiable"`
+	Proxied    bool      `json:"proxied"`
+	TTL        int       `json:"ttl"`
+	Locked     bool      `json:"locked"`
+	ZoneID     string    `json:"zone_id"`
+	ZoneName   string    `json:"zone_name"`
+	CreatedOn  time.Time `json:"created_on"`
+	ModifiedOn time.Time `json:"modified_on"`
+	Data       struct {
+	} `json:"data"`
+	Meta struct {
+		AutoAdded bool   `json:"auto_added"`
+		Source    string `json:"source"`
+	} `json:"meta"`
+}
+
 type DnsDetails struct {
 	Success  bool          `json:"success"`
 	Errors   []interface{} `json:"errors"`
 	Messages []interface{} `json:"messages"`
-	Result   []struct {
-		ID         string    `json:"id"`
-		Type       string    `json:"type"`
-		Name       string    `json:"name"`
-		Content    string    `json:"content"`
-		Proxiable  bool      `json:"proxiable"`
-		Proxied    bool      `json:"proxied"`
-		TTL        int       `json:"ttl"`
-		Locked     bool      `json:"locked"`
-		ZoneID     string    `json:"zone_id"`
-		ZoneName   string    `json:"zone_name"`
-		CreatedOn  time.Time `json:"created_on"`
-		ModifiedOn time.Time `json:"modified_on"`
-		Data       struct {
-		} `json:"data"`
-		Meta struct {
-			AutoAdded bool   `json:"auto_added"`
-			Source    string `json:"source"`
-		} `json:"meta"`
-	} `json:"result"`
+	Result   []Result      `json:"result"`
 }
 
 func (c *CloudFlareClient) GetDnsEntriesByDomain(DomainId string, Host string, Domain string) (*DnsDetails, error) {
@@ -209,16 +211,16 @@ type dnsUpdate struct {
 	Proxied bool   `json:"proxied"`
 }
 
-func (c *CloudFlareClient) UpdateDnsEntry(DomainId string, DnsDetails *DnsDetails, NewIpAddress string) error {
+func (c *CloudFlareClient) UpdateDnsEntry(item Result, NewIpAddress string) error {
 	param := dnsUpdate{
-		Type: DnsDetails.Result[0].Type,
-		Name: DnsDetails.Result[0].Name,
+		Type:    item.Type,
+		Name:    item.Name,
 		Content: NewIpAddress,
-		Ttl: DnsDetails.Result[0].TTL,
-		Proxied: DnsDetails.Result[0].Proxied,
+		Ttl:     item.TTL,
+		Proxied: item.Proxied,
 	}
 
-	endpoint := fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%v/dns_records/%v", DomainId, DnsDetails.Result[0].ID)
+	endpoint := fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%v/dns_records/%v", item.ZoneID, item.ID)
 
 	body, err := json.Marshal(param)
 	if err != nil {
@@ -237,9 +239,12 @@ func (c *CloudFlareClient) UpdateDnsEntry(DomainId string, DnsDetails *DnsDetail
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		log.Println(resp.Status)
+		body, _ := io.ReadAll(resp.Body)
+		log.Println(string(body))
 		return errors.New("failed to update the IP address")
 	}
 

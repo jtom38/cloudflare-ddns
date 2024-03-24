@@ -13,17 +13,19 @@ import (
 )
 
 const (
-	ConfigEmail  = "EMAIL"
-	ConfigToken  = "API_TOKEN"
-	ConfigDomain = "DOMAIN"
-	ConfigHosts  = "HOSTS"
+	ConfigEmail   = "EMAIL"
+	ConfigToken   = "API_TOKEN"
+	ConfigDomain  = "DOMAIN"
+	ConfigHosts   = "HOSTS"
+	ConfigIpStack = "IP_STACK" // ipv6/ipv4/dual
 )
 
 type ConfigModel struct {
-	Email  string   `yaml:"Email"`
-	Token  string   `yaml:"Token"`
-	Domain string   `yaml:"Domain"`
-	Hosts  []string `yaml:"Hosts"`
+	Email   string   `yaml:"Email"`
+	Token   string   `yaml:"Token"`
+	Domain  string   `yaml:"Domain"`
+	Hosts   []string `yaml:"Hosts"`
+	IpStack string   `yaml:"IpStack"`
 }
 
 type ConfigClient struct{}
@@ -59,6 +61,9 @@ func (cc *ConfigClient) LoadConfig() ConfigModel {
 	}
 	if model.Token == "" {
 		model.Token = cc.GetConfig(ConfigToken)
+	}
+	if model.IpStack == "" {
+		model.IpStack = cc.GetConfig(ConfigIpStack)
 	}
 
 	return model
