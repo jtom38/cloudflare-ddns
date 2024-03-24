@@ -2,9 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -14,10 +16,53 @@ var (
 	ErrFailedToDecodeJson error = errors.New("unexpected json format was returned")
 	ErrWasNotJson         error = errors.New("response from server was not json")
 	ErrDomainNotFound     error = errors.New("unable to find requested domain on cloudflare")
+	ErrUnknownIpStack     error = errors.New("unknown ip stack")
 )
 
-func GetCurrentIpAddress() (string, error) {
-	resp, err := http.Get("https://v4.ident.me")
+type IpAddr struct {
+	Ipv4 string
+	Ipv6 string
+}
+
+func GetCurrentIpAddress(ipStack string) (IpAddr, error) {
+	switch strings.ToLower(ipStack) {
+	case "ipv4":
+		ipv4, err := GetIpv4Addr()
+		if err != nil {
+			return IpAddr{}, err
+		}
+		return IpAddr{Ipv4: ipv4}, nil
+	case "ipv6":
+		ipv6, err := GetIpv4Addr()
+		if err != nil {
+			return IpAddr{}, err
+		}
+		return IpAddr{Ipv6: ipv6}, nil
+	case "dual":
+		ipv4, err := GetIpv4Addr()
+		if err != nil {
+			return IpAddr{}, fmt.Errorf("ipv4: %w", err)
+		}
+		ipv6, err := GetIpv6Addr()
+		if err != nil {
+			return IpAddr{}, fmt.Errorf("ipv6: %w", err)
+		}
+		return IpAddr{Ipv4: ipv4, Ipv6: ipv6}, nil
+	default:
+		return IpAddr{}, ErrUnknownIpStack
+	}
+}
+
+func GetIpv4Addr() (string, error) {
+	return GetAddr("https://v4.ident.me")
+}
+
+func GetIpv6Addr() (string, error) {
+	return GetAddr("https://v6.ident.me")
+}
+
+func GetAddr(url string) (string, error) {
+	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
 	}
@@ -63,7 +108,7 @@ func main() {
 	cron := NewCron()
 	log.Println("Cloudflare Check will run every 15 minutes.")
 	cron.scheduler.AddFunc("0/5 * * * *", func() {
-		cron.RunCloudflareCheck(cfg.Token, cfg.Email, cfg.Domain, cfg.Hosts)
+		cron.RunCloudflareCheck(cfg)
 	})
 	cron.scheduler.AddFunc("0/1 * * * *", func() {
 		cron.HelloWorldJob()
